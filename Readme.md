@@ -15,23 +15,23 @@ This is demonstrated by :
     1.	Restart the server. This clears the in-memory cache.
     2.	Before adding any keys through the client, we try to get a key that we know exists in your MySQL database from a previous run.
 The first get after a server restart for key should result in source:"database".
-    ```bash
-        Enter command (add, get, update, delete, stats, exit, help): get
-        Enter key: 2
-        Request Latency: 40.377 ms
-        HTTP Status: 200
-        Server Response Body:
-        {"key":"2","value":"3","source":"database"}
-    ```
+```bash
+Enter command (add, get, update, delete, stats, exit, help): get
+Enter key: 2
+Request Latency: 40.377 ms
+HTTP Status: 200
+Server Response Body:
+{"key":"2","value":"3","source":"database"}
+```
     3.	Immediately get the same key again. This second get should then be source:"cache" because the first get (the miss) would have loaded it into the cache.
-    ```bash
-        Enter command (add, get, update, delete, stats, exit, help): get
-        Enter key: 2
-        Request Latency: 4.646 ms
-        HTTP Status: 200
-        Server Response Body:
-        {"key":"2","value":"3","source":"cache"}
-    ```
+```bash
+Enter command (add, get, update, delete, stats, exit, help): get
+Enter key: 2
+Request Latency: 4.646 ms
+HTTP Status: 200
+Server Response Body:
+{"key":"2","value":"3","source":"cache"}
+```
 
 **Functionalities of the System Components:**
 1. **Server**: The server supports create, read, update and delete operations using RESTful APIs svr.Get, svr.Post, svr.Delete.
