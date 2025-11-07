@@ -44,7 +44,7 @@ svr.Post is used here instead of separate functions for Put and Update as it han
 
 2. **Cache**: It is an in-memory LRU cache. In the current server implementation, we are using the built-in C++ Standard Library to implement the LRU Cache.
 
-```bash
+```cpp
 std::unordered_map<std::string, std::list<CacheEntry>::iterator> cache_map;
 std::list<CacheEntry> cache_list;
 ```
@@ -52,13 +52,13 @@ std::list<CacheEntry> cache_list;
 3. **Database**: Connected a persistent KV store to the HTTP server, which stores data in the form of key-value pairs using MySQL to maintain the data sent by the clients using create, update, and delete operations. 
 --> Read: It checks whether a specific key is available in the database or not. If absent it throws an error.
 --> Upsert: Here we are compactly performing the update and insert step with the help of svr.Post API.
-```bash
+```sql
 INSERT INTO key_value (key_name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?
 ```
 So basically it inserts a new key, value pair or else on duplicate key it updates the value.
 --> Delete: It deletes the dey if it exists or else throws an error. 
 The database connection is done using the following method:
-```bash
+```sql
 sql::Connection* DatabaseManager::getDbConnection()
 ```
 4. **Concurrency and thread safety**: std::mutex for Cache: All access to the shared in-memory LRU cache is protected by a std::mutex (mtx). This ensures that multiple server threads accessing or modifying the cache concurrently do so safely, preventing race conditions and data corruption.
