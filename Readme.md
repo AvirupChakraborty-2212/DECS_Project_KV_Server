@@ -1,16 +1,18 @@
-**Project Title:** Performance testing and benchmarking of HTTP-based KV Server.
+## Project Title: 
+**PERFORMANCE TESTING AND BENCHMARKING OF HTTP BASED KV SERVER**
 
-**Description:** 
-The goal of the project is to build a multi-tier system ( HTTP server with a key-value (KV) storage system ), and perform its load test across various loads to identify its capacity and bottleneck resource.
+## Description: 
+The goal of the project is to build a multi-tier system (HTTP server with a key-value (KV) storage system ), and perform its load test across various loads to identify its capacity and bottleneck resource.
 
-There are three main components in this system: 
-    |- a multi-threaded HTTP server with a KV cache (in-memory storage), 
-    |- a load generator/test client (client side), and 
-    |- a database (disk storage). 
+**There are three main components in this system:** 
+- a multi-threaded HTTP server with a KV cache (in-memory storage), 
+- a load generator/test client (client side), and 
+- a database (disk storage). 
 
 The server is built over HTTP, and uses a pool of worker threads (httplib) to accept and process requests received from the clients. The clients generate requests to get and put key-value pairs at the server. The server stores all key-value pairs in a persistent MySQL database, and also caches the most frequently used key-value pairs in an in-memory LRU cache.The load generator will emulate multiple clients, and generate client requests concurrently to the server. 
 
-The implementation demonstrates handling of two types of requests that follow different execution paths like one accessing memory and another going to disk. 
+**The implementation demonstrates handling of two types of requests that follow different execution paths like one accessing memory and another going to disk.** 
+
 This is demonstrated by:
 
 1.	Restart the server. This clears the in-memory cache.
@@ -34,14 +36,14 @@ Server Response Body:
 {"key":"2","value":"3","source":"cache"}
 ```
 
-**Functionalities of the System Components:**
+## Functionalities of the System Components:
 1. **Server**: The server supports create, read, update and delete operations using RESTful APIs svr.Get, svr.Post, svr.Delete.
-|- read: When reading a key-value pair, first checks the cache. If it exists, reads it from the cache; otherwise, fetches it from the database and inserts it into the cache, evicting an existing pair if necessary.  
-|- create: When a new key-value pair is created, it is stored both in the cache and in the database. If the cache is full, evict an existing key-value pair based on LRU. 
-|- update: When a key is updated it is simultaneously updated in the database and the cache if the key exists.
+- **read**: When reading a key-value pair, first checks the cache. If it exists, reads it from the cache; otherwise, fetches it from the database and inserts it into the cache, evicting an existing pair if necessary.  
+- **create**: When a new key-value pair is created, it is stored both in the cache and in the database. If the cache is full, evict an existing key-value pair based on LRU. 
+- **update**: When a key is updated it is simultaneously updated in the database and the cache if the key exists.
 svr.Post is used here instead of separate functions for Put and Update as it handles the insert and update operations in a compact manner within the same method (query).
-|- delete: Performs all delete operations on the database. If the affected key-value pair also exists in the cache, deletes it from the cache as well to synchronize it with the database and prevent inconsistent data.
-|- stats: using a new endpoint : GET /stats svr.Get - This returns the number of cache hits and cache misses and cache hit rate.
+- **delete**: Performs all delete operations on the database. If the affected key-value pair also exists in the cache, deletes it from the cache as well to synchronize it with the database and prevent inconsistent data.
+- **stats**: using a new endpoint : GET /stats svr.Get - This returns the number of cache hits and cache misses and cache hit rate.
 
 2. **Cache**: It is an in-memory LRU cache. In the current server implementation, we are using the built-in C++ Standard Library to implement the LRU Cache.
 
@@ -51,13 +53,13 @@ std::list<CacheEntry> cache_list;
 ```
 
 3. **Database**: Connected a persistent KV store to the HTTP server, which stores data in the form of key-value pairs using MySQL to maintain the data sent by the clients using create, update, and delete operations. 
-|- Read: It checks whether a specific key is available in the database or not. If absent it throws an error.
-|- Upsert: Here we are compactly performing the update and insert step with the help of svr.Post API.
+- **Read**: It checks whether a specific key is available in the database or not. If absent it throws an error.
+- **Upsert**: Here we are compactly performing the update and insert step with the help of svr.Post API.
 ```sql
 INSERT INTO key_value (key_name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?
 ```
 So basically it inserts a new key, value pair or else on duplicate key it updates the value.
-|- Delete: It deletes the dey if it exists or else throws an error. 
+- **Delete**: It deletes the dey if it exists or else throws an error. 
 The database connection is done using the following method:
 ```sql
 sql::Connection* DatabaseManager::getDbConnection()
@@ -67,16 +69,17 @@ Threadpool is implemented internally in httplib library. Number of threads are b
 
 5. **Test Client / Load Generator**: The test client connects to the server and implements the all the above functionalities. It also prints the cache statistics like the hits, misses, hit rate etc.
 
-**Tech Stack:** 
-    |- Server is implemented in cpp. 
-    |- Test Client is implemented in cpp.
-    |- For server operations, httplib library is used. 
-    |- Database (persistent storage): mysql server.
-    |- Database connection libmysqlcppconn-dev is used.
+## Tech Stack: 
+- Server is implemented in cpp. 
+- Test Client is implemented in cpp.
+- For server operations, httplib library is used. 
+- Database (persistent storage): mysql server.
+- Database connection libmysqlcppconn-dev is used.
 
-**GitHub Repository Link:** https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
+## GitHub Repository Link: 
+https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
 
-**Directory Structure:**
+## Directory Structure:
 
     |- include
         |- spdlog/
@@ -99,7 +102,7 @@ Threadpool is implemented internally in httplib library. Number of threads are b
 
 **Note:** constants.h contains all the configurable parameters like the network configuration, cache capacity etc.
 
-**Steps to setup and run the project(linux-only):**
+## Steps to setup and run the project(linux):
 
 
 1. Install g++ and other essential libraries:
@@ -181,7 +184,7 @@ Threadpool is implemented internally in httplib library. Number of threads are b
 
 10. **Logging:** Once the server and client are up and running the logs will get generated in the ../logs path of the root directory.
 
-**Sample output of the client is provided below:**
+## Sample output of the client:
 ```bash
 (base)$ taskset -c 4-5 ./test_client
 Interactive KV Client

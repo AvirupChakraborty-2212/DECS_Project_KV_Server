@@ -100,7 +100,7 @@ int main() {
 
         std::string value;
         if (cache.get(key, value)) {
-            // --- Execution Path 1: Cache Hit (Memory Access) ---
+            // --- Execution Path 2: Cache Hit (Memory Access) ---
             cache_hits.fetch_add(1, std::memory_order_relaxed);
             res.status = 200;
             res.set_content("{\"key\":\"" + key + "\",\"value\":\"" + value + "\",\"source\":\"cache\"}", "application/json");
@@ -108,7 +108,7 @@ int main() {
             return; // Request satisfied from memory
         }
 
-        // --- Execution Path 2: Cache Miss (Disk/Database Access) ---
+        // --- Execution Path 1: Cache Miss (Disk/Database Access) ---
         cache_misses.fetch_add(1, std::memory_order_relaxed);
         try {
             value = DatabaseManager::get(key); // Go to database (disk)
