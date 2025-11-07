@@ -135,7 +135,7 @@ https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
 4. Setup mysql-server:
 
     ```bash    
-    cd project_kv_server
+    cd DECS_Project_KV_Server
     sudo mysql < create_db.sql -p
     sudo systemctl enable --now mysql
     ```
