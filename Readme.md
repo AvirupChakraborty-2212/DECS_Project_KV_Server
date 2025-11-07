@@ -1,6 +1,10 @@
 ## Project Title: 
 **PERFORMANCE TESTING AND BENCHMARKING OF HTTP BASED KV SERVER**
 
+## Architecture Diagram:
+![Architecture](images/architecture.jpeg)
+
+
 ## Description: 
 The goal of the project is to build a multi-tier system (HTTP server with a key-value (KV) storage system ), and perform its load test across various loads to identify its capacity and bottleneck resource.
 
@@ -81,6 +85,8 @@ https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
 
 ## Directory Structure:
 
+    |-images
+        |-architecture.jpeg
     |- include
         |- spdlog/
         |- cache.h
