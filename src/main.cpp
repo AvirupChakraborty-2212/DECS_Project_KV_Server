@@ -1,8 +1,8 @@
 #include <iostream>
 #include "httplib.h"
 #include "constants.h"
-#include "database.h"    // Ensure this matches your filename (e.g. db_pool.h or database.h)
-#include "cache.h"  // Ensure this matches your filename (e.g. lru_cache.h or cache.h)
+#include "database.h"    
+#include "cache.h"  
 
 // Global singletons
 DBPool* dbPool;
@@ -24,7 +24,7 @@ void exec_sql(const std::string& query, const std::string& k, const std::string&
     dbPool->releaseConnection(con);
 }
 
-// --- Handlers ---
+
 
 // 1. Create (POST /api/data?key=x&val=y)
 void handle_create(const httplib::Request& req, httplib::Response& res) {
@@ -98,7 +98,7 @@ void handle_update(const httplib::Request& req, httplib::Response& res) {
         int rows_affected = 0;
 
         try {
-            // OPTIMIZATION: Directly try to update. 
+
             // executeUpdate() returns the number of rows matched/changed.
             std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("UPDATE key_value SET value = ? WHERE key_name = ?"));
             pstmt->setString(1, v);
@@ -149,7 +149,7 @@ void handle_delete(const httplib::Request& req, httplib::Response& res) {
 }
 
 int main() {
-    // Initialize singletons
+
     dbPool = new DBPool();
     cache = new ShardedLRUCache(Config::CACHE_CAPACITY_TOTAL, Config::CACHE_SHARDS);
 
@@ -164,7 +164,7 @@ int main() {
     svr.Put("/api/data", handle_update);
     svr.Delete("/api/data", handle_delete);
 
-        // --- ADD THIS DEBUGGING BLOCK HERE ---
+
     std::cout << "\n=== SERVER CONFIG DIAGNOSTICS ===" << std::endl;
     std::cout << "Server IP:        " << Config::SERVER_ADDRESS << std::endl;
     std::cout << "Server Port:      " << Config::SERVER_PORT << std::endl;
@@ -172,7 +172,7 @@ int main() {
     std::cout << "Cache Capacity:   " << Config::CACHE_CAPACITY_TOTAL << std::endl;
     std::cout << "DB Pool Size:     " << Config::DB_POOL_SIZE << std::endl;
     std::cout << "=================================\n" << std::endl;
-    // -------------------------------------
+
 
     std::cout << "Server started on port " << Config::SERVER_PORT << "..." << std::endl;
     svr.listen(Config::SERVER_ADDRESS.c_str(), Config::SERVER_PORT);

@@ -92,8 +92,7 @@ void worker(int id, WorkloadType type, std::string host, int port, int p_get, in
         bool is_read = false, is_write = false;
         int p = dist_percent(rng);
 
-        // --- WORKLOAD LOGIC ---
-        
+      
         // 1. PUT ALL (Random Writes over Huge Range -> Forces Disk I/O)
         if (type == PUT_ALL) {
             // Use HUGE random range to prevent caching and force B-Tree splits
@@ -156,7 +155,6 @@ void worker(int id, WorkloadType type, std::string host, int port, int p_get, in
         total_requests++;
 
         if (res) {
-            // 200 OK, 201 Created, 404 Not Found (Valid for random access)
             if (res->status != 500) {
                 successful_requests++;
                 long long lat = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();

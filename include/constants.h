@@ -7,7 +7,7 @@ namespace Config {
     // Database Config
     const std::string DB_HOST = "tcp://127.0.0.1:3306";
     const std::string DB_USER = "mysql_user";
-    const std::string DB_PASS = "abc@123"; // CHANGE THIS
+    const std::string DB_PASS = "abc@123"; 
     const std::string DB_NAME = "kv_store_db";
 
     // Server Config
