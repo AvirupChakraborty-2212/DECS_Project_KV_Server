@@ -76,7 +76,7 @@ We optimized the cache because a single lock is a bottleneck.
 
 ## Tech Stack: 
 - Server is implemented in cpp. 
-- Test Client is implemented in cpp.
+- Load Generator is implemented in cpp.
 - For server operations, httplib library is used. 
 - Database (persistent storage): mysql server.
 - Database connection libmysqlcppconn-dev is used.
