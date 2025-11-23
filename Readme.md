@@ -10,12 +10,12 @@ The goal of the project is to build a multi-tier system (HTTP server with a key-
 
 **There are three main components in this system:** 
 - a multi-threaded HTTP server with a KV cache (in-memory storage), 
-- a load generator/test client (client side), and 
-- a database (disk storage). 
+- a multithreaded load generator (client side), and 
+- a MySQL database (disk storage). 
 
 The server is built over HTTP, and uses a pool of worker threads (httplib) to accept and process requests received from the clients. The clients generate requests to get and put key-value pairs at the server. The server stores all key-value pairs in a persistent MySQL database, and also caches the most frequently used key-value pairs in an in-memory LRU cache.The load generator will emulate multiple clients, and generate client requests concurrently to the server. 
 
-**The implementation demonstrates handling of two types of requests that follow different execution paths like one accessing memory and another going to disk.** 
+**The implementation demonstrates handling of two types of requests that follow different execution paths like one accessing memory and another going to disk with the help of test client.** 
 
 This is demonstrated by:
 
@@ -41,37 +41,38 @@ Server Response Body:
 ```
 
 ## Functionalities of the System Components:
-1. **Server**: The server supports create, read, update and delete operations using RESTful APIs svr.Get, svr.Post, svr.Delete.
+1. **Server**: The server supports create, read, update and delete operations using RESTful APIs.
 - **read**: When reading a key-value pair, first checks the cache. If it exists, reads it from the cache; otherwise, fetches it from the database and inserts it into the cache, evicting an existing pair if necessary.  
 - **create**: When a new key-value pair is created, it is stored both in the cache and in the database. If the cache is full, evict an existing key-value pair based on LRU. 
 - **update**: When a key is updated it is simultaneously updated in the database and the cache if the key exists.
 svr.Post is used here instead of separate functions for Put and Update as it handles the insert and update operations in a compact manner within the same method (query).
 - **delete**: Performs all delete operations on the database. If the affected key-value pair also exists in the cache, deletes it from the cache as well to synchronize it with the database and prevent inconsistent data.
-- **stats**: using a new endpoint : GET /stats svr.Get - This returns the number of cache hits and cache misses and cache hit rate.
+- **stats**: using a new endpoint :  This returns the number of cache hits and cache misses and cache hit rate.
 
-2. **Cache**: It is an in-memory LRU cache. In the current server implementation, we are using the built-in C++ Standard Library to implement the LRU Cache.
-
-```cpp
-std::unordered_map<std::string, std::list<CacheEntry>::iterator> cache_map;
-std::list<CacheEntry> cache_list;
-```
+2. **Cache**: It is an in-memory sharded LRU cache. In the current server implementation, we are using the built-in C++ Standard Library to implement the LRU Cache.
 
 3. **Database**: Connected a persistent KV store to the HTTP server, which stores data in the form of key-value pairs using MySQL to maintain the data sent by the clients using create, update, and delete operations. 
 - **Read**: It checks whether a specific key is available in the database or not. If absent it throws an error.
-- **Upsert**: Here we are compactly performing the update and insert step with the help of svr.Post API.
-```sql
-INSERT INTO key_value (key_name, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = ?
-```
-So basically it inserts a new key, value pair or else on duplicate key it updates the value.
+- **Insert**: Here we are performing insert step based on whether a key is present or absent in the database.
+- **Update**: It inserts a new key, value pair or else on duplicate key it updates the value.
 - **Delete**: It deletes the dey if it exists or else throws an error. 
-The database connection is done using the following method:
-```sql
-sql::Connection* DatabaseManager::getDbConnection()
-```
-4. **Concurrency and thread safety**: std::mutex for Cache: All access to the shared in-memory LRU cache is protected by a std::mutex (mtx). This ensures that multiple server threads accessing or modifying the cache concurrently do so safely, preventing race conditions and data corruption.
-Threadpool is implemented internally in httplib library. Number of threads are by default max(8, thread.harware_concurrency()- 1). Threads check if any request is available. Any idle thread will pick up and process that request. By default queue size is infinite.
 
-5. **Test Client / Load Generator**: The test client connects to the server and implements the all the above functionalities. It also prints the cache statistics like the hits, misses, hit rate etc.
+4. **DB connection Pool**:
+Establishing a TCP connection to MySQL involves a handshake and authentication, which is computationally expensive. We implemented the Object Pool Pattern to mitigate this.
+ - Structure: Athread-safe std::queue containing pre-established sql::Connection pointers.
+ - Workflow:
+ 1. Borrow: A worker thread locks the pool mutex. If the queue is empty, it waits on a std::condition variable.
+ 2. Execute: The thread executes the SQL query.
+ 3. Return: The connection is pushed back into the queue, and waiting threads are notified.
+ • Synchronization: We used std::condition variable to efficiently put threads to sleep if the pool is empty, waking them only when a connection is returned.
+
+5. **Concurrency and thread safety**: 
+We optimized the cache because a single lock is a bottleneck.
+ - The Problem: In a multi-threaded environment, you need a std::mutex (Lock) to prevent two threads from corrupting the cache memory. If you have one big cache, all 4 threads fight for one lock. Thread A cannot read while Thread B is writing.
+ - The Solution: Sharding– Partitioning: The cache is split into 4 independent shards.– Hashing Logic: The target shard is determined by hash arithmetic: Shard ID = Hash(Key) (mod 4)
+ – Benefit: A thread accessing a key in Shard 0 does not block a thread accessing a key in Shard 1, significantly increasing parallel read/write throughput.
+
+6. **Load Generator**: The Load Generator is designed as a high-performance, multi-threaded client application implemented in C++. It operates as a Closed-Loop System, where each thread waits for a response before issuing the next request. This model implies that the load generated is a function of the system’s response time (Little’s Law), providing a realistic simulation of active user behavior..
 
 ## Tech Stack: 
 - Server is implemented in cpp. 
@@ -87,24 +88,19 @@ https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
 
     |-images
         |-architecture.jpeg
-    |- include
-        |- spdlog/
+    |- include 
         |- cache.h
         |- constants.h
         |- database.h
         |- httplib.h
-        |- json.hpp
-        |- logger.h
     |- src
-        |- cache.cpp
-        |- database.cpp
-        |- logger.cpp
         |- main.cpp
-    |- test_client
-        |- test_client.cpp
+    |- loadgen
+        |- load_generator.cpp
     |- CMakeLists.txt
     |- init_database.sql
     |- README.md
+    |- run_load_gen.sh
 
 **Note:** constants.h contains all the configurable parameters like the network configuration, cache capacity etc.
 
@@ -153,20 +149,20 @@ https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
 6. Pin the database using taskset:
 
     ```bash
-    sudo taskset -cp 2,3 $(pidof mysqld)
+    sudo taskset -cp 0 $(pidof mysqld)
     ```
     You should see something like this 
     
     ```bash
     pid 394's current affinity list: 0-7
-    pid 394's new affinity list: 2,3
+    pid 394's new affinity list: 0
     ```
 
 7. Open new terminal window and navigate to the build directory and pin the server to some cores using taskset command:
 
     ```bash
     cd build
-    taskset -c 0,1 ./kv_server
+    taskset -c 1 ./kv_server
     ```
     You should see something like this in the terminal once the server is up and running:
 
@@ -175,89 +171,38 @@ https://github.com/AvirupChakraborty-2212/DECS_Project_KV_Server
     ```
 
 8. Open one more terminal and change current working directory to build/:
-
+   all workloads
     ```bash
-    cd build
-    taskset -c 4-5 ./test_client
+    cd build    
+    taskset -c 2-7 ./loadgen <no. of clients> <duration> <workload type>
+    ```
+    for mix workload
+    ```bash
+    cd build    
+    taskset -c 2-7 ./loadgen <no. of clients> <duration> <workload type> <ratio1> <ratio2>
     ```
 
 9. Verify taskset using the following example for the processes:
     ```bash
-    taskset -c 0 ./kv_server
+    taskset -c 1 ./kv_server
     pgrep kv_server
     taskset -p <PID_of_kv_server>
     ```
 
-10. **Logging:** Once the server and client are up and running the logs will get generated in the ../logs path of the root directory.
+10. Incase you want to write the files to a csv use
+    ```bash
+    chmod +x run_load_gen.sh
+    sudo ./run_load_gen.sh 10 300 put_all
+    ```
 
-## Sample output of the client:
+## Sample output of the load generator:
 ```bash
-(base)$ taskset -c 4-5 ./test_client
-Interactive KV Client
-Server target: 127.0.0.1:8080
-Type 'help' for commands.
+(base) DECS/project_kv_server/build$ taskset -c 2-7 ./loadgen 5 300 put_all
+>>> Starting Benchmark (put_all) with 5 threads for 300s...
 
-Enter command (add, get, update, delete, stats, exit, help): add
-Enter key: 1
-Enter value: apple
-Request Latency: 155.519 ms
-HTTP Status: 200
-Server Response Body:
-{"status":"success"}
-
-Enter command (add, get, update, delete, stats, exit, help): get 
-Enter key: 1
-Request Latency: 0.982 ms
-HTTP Status: 200
-Server Response Body:
-{"key":"1","value":"apple","source":"cache"}
-
-Enter command (add, get, update, delete, stats, exit, help): update
-Enter key: 1
-Enter value: pineapple
-Request Latency: 48.234 ms
-HTTP Status: 200
-Server Response Body:
-{"status":"success"}
-
-Enter command (add, get, update, delete, stats, exit, help): get
-Enter key: 1
-Request Latency: 1.028 ms
-HTTP Status: 200
-Server Response Body:
-{"key":"1","value":"pineapple","source":"cache"}
-
-Enter command (add, get, update, delete, stats, exit, help): delete
-Enter key to delete: 1
-Request Latency: 49.487 ms
-HTTP Status: 200
-Server Response Body:
-{"status":"success"}
-
-Enter command (add, get, update, delete, stats, exit, help): get
-Enter key: 1
-Request Latency: 40.677 ms
-HTTP Status: 404
-Server Response Body:
-{"error":"key not found"}
-
-Enter command (add, get, update, delete, stats, exit, help): stats
-Request Latency: 0.976 ms
-HTTP Status: 200
-Server Response Body:
-{"cache_hits":2,"cache_misses":1,"total_get_requests":3,"cache_hit_rate":"66.67%"}
-
-Enter command (add, get, update, delete, stats, exit, help): help
-
-Available commands:
-  add      - Add a new key-value pair.
-  get      - Retrieve the value for a given key.
-  update   - Update the value for an existing key.
-  delete   - Remove a key-value pair.
-  stats    - Get server cache statistics.
-  exit     - Close the client.
-
-
-Enter command (add, get, update, delete, stats, exit, help): exit
-Exiting client.
+=== RESULTS ===
+Throughput: 423.43 req/sec
+Latency: 11.58 ms
+Cache: Hits=0 Misses=0 HitRate=0.00%
+Disk: Writes=127028 404s=0
 ```

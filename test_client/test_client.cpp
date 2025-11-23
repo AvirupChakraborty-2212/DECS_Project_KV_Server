@@ -11,7 +11,7 @@
 
 // Helper function to send HTTP requests and print results
 std::string send_kv_request(const std::string& method, const std::string& key, const std::string& value = "") {
-    httplib::Client cli(SERVER_ADDRESS, SERVER_PORT);
+    httplib::Client cli(Config::SERVER_ADDRESS, Config::SERVER_PORT);
     cli.set_connection_timeout(0, 300000); // 300ms
     cli.set_read_timeout(5, 0);            // 5 seconds
     cli.set_write_timeout(5, 0);           // 5 seconds
@@ -30,7 +30,12 @@ std::string send_kv_request(const std::string& method, const std::string& key, c
         params.emplace("key", key);
         params.emplace("value", value);
         res = cli.Post(path.c_str(), params);
-    } else if (method == "DELETE") {
+    } else if (method == "PUT") {
+        path = "/kv/" + key; 
+        // httplib can send params in body for PUT similarly to POST
+        params.emplace("value", value); 
+        res = cli.Put(path.c_str(), params);
+    }else if (method == "DELETE") {
         path = "/kv/" + key;
         res = cli.Delete(path.c_str());
     } else {
@@ -56,7 +61,7 @@ std::string send_kv_request(const std::string& method, const std::string& key, c
 
 // Function to send a request for server statistics
 std::string send_stats_request() {
-    httplib::Client cli(SERVER_ADDRESS, SERVER_PORT);
+    httplib::Client cli(Config::SERVER_ADDRESS, Config::SERVER_PORT);
     cli.set_connection_timeout(0, 300000); // 300ms
     cli.set_read_timeout(5, 0);            // 5 seconds
     cli.set_write_timeout(5, 0);           // 5 seconds
@@ -82,7 +87,7 @@ std::string send_stats_request() {
 
 int main() {
     std::cout << "Interactive KV Client" << std::endl;
-    std::cout << "Server target: " << SERVER_ADDRESS << ":" << SERVER_PORT << std::endl;
+    std::cout << "Server target: " << Config::SERVER_ADDRESS << ":" << Config::SERVER_PORT << std::endl;
     std::cout << "Type 'help' for commands." << std::endl;
 
     std::string command;
@@ -113,22 +118,39 @@ int main() {
             std::getline(std::cin, key); // Use getline for keys as well, to allow spaces
             std::string response_body = send_kv_request("GET", key);
             std::cout << "Server Response Body:\n" << response_body << std::endl;
-        } else if (command == "add" || command == "update") { // Both map to POST /kv
-            std::cout << "Enter key: ";
+
+        } if (command == "add") {
+            std::cout << "Enter key to add: ";
             std::getline(std::cin, key);
             std::cout << "Enter value: ";
             std::getline(std::cin, value);
 
-            std::string response_body = send_kv_request("POST", key, value); // Use POST for add/update
-            std::cout << "Server Response Body:\n" << response_body << std::endl;
+            // "add" uses POST (Insert)
+            // send_kv_request handles POST by sending to /kv with params
+            std::string response = send_kv_request("POST", key, value);
+            std::cout << "Response:\n" << response << std::endl;
+
+        } else if (command == "update") {
+            std::cout << "Enter key to update: ";
+            std::getline(std::cin, key);
+            std::cout << "Enter new value: ";
+            std::getline(std::cin, value);
+
+            // "update" uses PUT
+            // We need to ensure send_kv_request handles PUT correctly
+            std::string response = send_kv_request("PUT", key, value);
+            std::cout << "Response:\n" << response << std::endl;
+
         } else if (command == "delete") {
             std::cout << "Enter key to delete: ";
             std::getline(std::cin, key);
             std::string response_body = send_kv_request("DELETE", key);
             std::cout << "Server Response Body:\n" << response_body << std::endl;
+
         } else if (command == "stats") {
             std::string response_body = send_stats_request();
             std::cout << "Server Response Body:\n" << response_body << std::endl;
+            
         } else {
             std::cout << "Invalid command. Type 'help' for available commands." << std::endl;
         }

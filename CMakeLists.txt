@@ -32,21 +32,21 @@ target_link_libraries(kv_server PRIVATE ${MYSQLCPP_CONN_LIB} pthread)
 # ==============================
 
 # Find libcurl package
-#find_package(CURL REQUIRED)
+find_package(CURL REQUIRED)
 
-#add_executable(loadgen loadgen/load_generator.cpp)
+add_executable(loadgen loadgen/load_generator.cpp)
 
 # Include and link curl
-#target_include_directories(loadgen PRIVATE ${CURL_INCLUDE_DIRS})
-#target_link_libraries(loadgen PRIVATE ${CURL_LIBRARIES} pthread)
+target_include_directories(loadgen PRIVATE ${CURL_INCLUDE_DIRS})
+target_link_libraries(loadgen PRIVATE ${CURL_LIBRARIES} pthread)
 
 # ==============================
 # == TEST CLIENT (httplib)
 # ==============================
 # No special libraries needed beyond what's handled by include_directories for httplib.h
-add_executable(test_client test_client/test_client.cpp)
-target_include_directories(test_client PRIVATE ${CURL_INCLUDE_DIRS})
-target_link_libraries(test_client PRIVATE ${CURL_LIBRARIES} pthread) # For std::thread::sleep_for
+#add_executable(test_client test_client/test_client.cpp)
+#target_include_directories(test_client PRIVATE ${CURL_INCLUDE_DIRS})
+#target_link_libraries(test_client PRIVATE ${CURL_LIBRARIES} pthread) # For std::thread::sleep_for
 
 # ==============================
 # == Optional compiler warnings
@@ -62,8 +62,8 @@ message(STATUS "-----------------------------------------")
 message(STATUS "Project: CS744_KV_Project")
 message(STATUS "C++ Standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "Server Source File: src/server.cpp")
-#message(STATUS "Load Generator Source File: loadgen/loadgen.cpp")
-message(STATUS "Test Client Source File: test_client.cpp")
+message(STATUS "Load Generator Source File: loadgen/loadgen.cpp")
+#message(STATUS "Test Client Source File: test_client.cpp")
 message(STATUS "Include Dir (Project): ${CMAKE_SOURCE_DIR}/include")
 message(STATUS "Include Dir (MySQL): /usr/include/mysql-cppconn-8/")
 message(STATUS "MySQL C++ Connector Library: ${MYSQLCPP_CONN_LIB}")
