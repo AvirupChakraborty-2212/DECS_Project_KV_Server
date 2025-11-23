@@ -1,5 +1,5 @@
 ## Project Title: 
-**PERFORMANCE TESTING AND BENCHMARKING OF HTTP BASED KV SERVER**
+**Performance and Bottleneck Analysis of a Multi-Tier Key-Value Store**
 
 ## Architecture Diagram:
 ![Architecture](images/architecture.jpeg)
